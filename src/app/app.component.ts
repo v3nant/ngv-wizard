@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import {Dialog} from '@angular/cdk/dialog';
+import {WizardComponent} from "./wizard/wizard.component";
 
 @Component({
   selector: 'app-root',
@@ -6,5 +8,17 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'ngv-wizard';
+  title = 'NG-V Wizard';
+
+  constructor(private dialogService: Dialog) {
+  }
+
+  openDialog() {
+  this.dialogService.open(WizardComponent, {
+    minWidth: '300px',
+    data: {
+      animal: 'panda',
+    },
+  })
+  }
 }
