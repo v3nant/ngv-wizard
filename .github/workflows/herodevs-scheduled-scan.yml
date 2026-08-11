@@ -17,6 +17,7 @@ env:
   ARP_BASE_BRANCH: main
   ARP_SCAN_BRANCH: main
   ARP_STRATEGY: co_pilot
+  ARP_REVIEWERS: "v3nant"
 
 jobs:
   notify-platform:
