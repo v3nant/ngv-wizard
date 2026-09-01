@@ -15,6 +15,13 @@ jobs:
   claim:
     runs-on: ubuntu-latest
     steps:
+      - name: Normalize the server URL
+        id: url
+        run: |
+          CLEAN=$(printf '%s' "${{ inputs.server_url }}" | tr -d '\r\n' | xargs)
+          echo "Using server_url: [$CLEAN]"
+          echo "value=$CLEAN" >> "$GITHUB_OUTPUT"
+
       - name: Request an OIDC token
         id: token
         run: |
@@ -26,7 +33,7 @@ jobs:
       - name: Claim the queued run
         id: claim
         env:
-          SERVER_URL: ${{ inputs.server_url }}
+          SERVER_URL: ${{ steps.url.outputs.value }}
           TOKEN: ${{ steps.token.outputs.token }}
         run: |
           RESPONSE=$(curl -sS -w '\n%{http_code}' -X POST "$SERVER_URL/api/executors/runs/claim" \
@@ -41,7 +48,7 @@ jobs:
       - name: Report progress
         if: steps.claim.outputs.run_id != ''
         env:
-          SERVER_URL: ${{ inputs.server_url }}
+          SERVER_URL: ${{ steps.url.outputs.value }}
           TOKEN: ${{ steps.token.outputs.token }}
           RUN_ID: ${{ steps.claim.outputs.run_id }}
         run: |
@@ -53,7 +60,7 @@ jobs:
       - name: Report completion
         if: steps.claim.outputs.run_id != ''
         env:
-          SERVER_URL: ${{ inputs.server_url }}
+          SERVER_URL: ${{ steps.url.outputs.value }}
           TOKEN: ${{ steps.token.outputs.token }}
           RUN_ID: ${{ steps.claim.outputs.run_id }}
         run: |
