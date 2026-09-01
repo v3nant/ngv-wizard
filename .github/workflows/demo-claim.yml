@@ -5,7 +5,6 @@ on:
     inputs:
       server_url:
         description: 'Your ngrok URL, e.g. https://abcd1234.ngrok-free.app'
-        default: 'https://encroach-skies-flock.ngrok-free.dev'
         required: true
 
 permissions:
@@ -16,12 +15,49 @@ jobs:
   claim:
     runs-on: ubuntu-latest
     steps:
-      - name: Request an OIDC token and call the claim endpoint
-        env:
-          SERVER_URL: ${{ inputs.server_url }}
+      - name: Request an OIDC token
+        id: token
         run: |
           TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=evergreen-executor" | jq -r '.value')
-          echo "Got token (truncated): ${TOKEN:0:24}..."
-          curl -i -X POST "$SERVER_URL/api/executors/runs/claim" \
-            -H "Authorization: Bearer $TOKEN"
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Claim the queued run
+        id: claim
+        env:
+          SERVER_URL: ${{ inputs.server_url }}
+          TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          RESPONSE=$(curl -sS -w '\n%{http_code}' -X POST "$SERVER_URL/api/executors/runs/claim" \
+            -H "Authorization: Bearer $TOKEN")
+          echo "$RESPONSE"
+          STATUS=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          RUN_ID=$(echo "$BODY" | jq -r '.run.id // empty')
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Report progress
+        if: steps.claim.outputs.run_id != ''
+        env:
+          SERVER_URL: ${{ inputs.server_url }}
+          TOKEN: ${{ steps.token.outputs.token }}
+          RUN_ID: ${{ steps.claim.outputs.run_id }}
+        run: |
+          curl -i -X POST "$SERVER_URL/api/executors/runs/$RUN_ID/progress" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"progress":"Resolving dependencies (demo)"}'
+
+      - name: Report completion
+        if: steps.claim.outputs.run_id != ''
+        env:
+          SERVER_URL: ${{ inputs.server_url }}
+          TOKEN: ${{ steps.token.outputs.token }}
+          RUN_ID: ${{ steps.claim.outputs.run_id }}
+        run: |
+          curl -i -X POST "$SERVER_URL/api/executors/runs/$RUN_ID/complete" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"outcome":"completed"}'
