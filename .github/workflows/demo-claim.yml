@@ -1,0 +1,26 @@
+name: Demo claim
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_url: https://encroach-skies-flock.ngrok-free.dev
+        description: 'Your ngrok URL, e.g. https://abcd1234.ngrok-free.app'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  claim:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request an OIDC token and call the claim endpoint
+        env:
+          SERVER_URL: ${{ inputs.server_url }}
+        run: |
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=evergreen-executor" | jq -r '.value')
+          echo "Got token (truncated): ${TOKEN:0:24}..."
+          curl -i -X POST "$SERVER_URL/api/executors/runs/claim" \
+            -H "Authorization: Bearer $TOKEN"
