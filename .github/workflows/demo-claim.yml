@@ -3,8 +3,9 @@ name: Demo claim
 on:
   workflow_dispatch:
     inputs:
-      server_url: https://encroach-skies-flock.ngrok-free.dev
+      server_url:
         description: 'Your ngrok URL, e.g. https://abcd1234.ngrok-free.app'
+        default: 'https://encroach-skies-flock.ngrok-free.dev'
         required: true
 
 permissions:
