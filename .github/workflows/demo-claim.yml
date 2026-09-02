@@ -37,7 +37,8 @@ jobs:
           TOKEN: ${{ steps.token.outputs.token }}
         run: |
           RESPONSE=$(curl -sS -w '\n%{http_code}' -X POST "$SERVER_URL/api/executors/runs/claim" \
-            -H "Authorization: Bearer $TOKEN")
+            -H "Authorization: Bearer $TOKEN" \
+            -H "ngrok-skip-browser-warning: true")
           echo "$RESPONSE"
           STATUS=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
@@ -54,6 +55,7 @@ jobs:
         run: |
           curl -i -X POST "$SERVER_URL/api/executors/runs/$RUN_ID/progress" \
             -H "Authorization: Bearer $TOKEN" \
+            -H "ngrok-skip-browser-warning: true" \
             -H "Content-Type: application/json" \
             -d '{"progress":"Resolving dependencies (demo)"}'
 
@@ -66,5 +68,6 @@ jobs:
         run: |
           curl -i -X POST "$SERVER_URL/api/executors/runs/$RUN_ID/complete" \
             -H "Authorization: Bearer $TOKEN" \
+            -H "ngrok-skip-browser-warning: true" \
             -H "Content-Type: application/json" \
             -d '{"outcome":"completed"}'
